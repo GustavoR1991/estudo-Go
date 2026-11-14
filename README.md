@@ -313,7 +313,7 @@ Campos:
 }
 ```
 
-Rotas:
+Rotas: 
 
 ```text
 GET    /api/products
