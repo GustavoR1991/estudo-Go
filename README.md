@@ -31,6 +31,22 @@ go test ./...
 go vet ./...
 ```
 
+### API de produtos
+
+A loja usa os endpoints abaixo (os dados ficam em memória durante a execução):
+
+```text
+GET    /api/products?q=fone&category=Áudio
+POST   /api/products
+GET    /api/products/{id}
+PUT    /api/products/{id}
+DELETE /api/products/{id}
+```
+
+Um produto precisa de `name`, `category`, `price` maior que zero e `stock` maior
+ou igual a zero. O front-end em desenvolvimento (`npm run dev`) encaminha
+automaticamente `/api` para o Go em `http://localhost:8080`.
+
 ---
 
 ## Desafio 1 — CRUD de projetos
@@ -313,7 +329,7 @@ Campos:
 }
 ```
 
-Rotas: 
+Rotas:
 
 ```text
 GET    /api/products

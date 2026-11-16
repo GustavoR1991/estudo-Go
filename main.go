@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"monolito-go-vue/internal/products"
 	"monolito-go-vue/internal/projects"
 	"monolito-go-vue/internal/tasks"
 )
@@ -25,6 +26,11 @@ func main() {
 	mux.HandleFunc("GET /api/projects/{id}", projects.Get)
 	mux.HandleFunc("PUT /api/projects/{id}", projects.Update)
 	mux.HandleFunc("DELETE /api/projects/{id}", projects.Delete)
+	mux.HandleFunc("GET /api/products", products.List)
+	mux.HandleFunc("POST /api/products", products.Create)
+	mux.HandleFunc("GET /api/products/{id}", products.Get)
+	mux.HandleFunc("PUT /api/products/{id}", products.Update)
+	mux.HandleFunc("DELETE /api/products/{id}", products.Delete)
 
 	dist, err := fs.Sub(frontendFiles, "frontend/dist")
 	if err != nil {

@@ -15,7 +15,7 @@ func (c Cachorro) falar() string {
 type gato struct{}
 
 func (g gato) falar() string {
-	return " Miau miau"
+	return "Miau miau"
 }
 
 func emitirsom(animal Animal) string {
