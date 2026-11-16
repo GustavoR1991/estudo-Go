@@ -5,10 +5,10 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 
+	"monolito-go-vue/internal/orders"
 	"monolito-go-vue/internal/products"
-	"monolito-go-vue/internal/projects"
-	"monolito-go-vue/internal/tasks"
 )
 
 //go:embed frontend/dist
@@ -17,20 +17,18 @@ var frontendFiles embed.FS
 func main() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /api/tasks", tasks.List)
-	mux.HandleFunc("POST /api/tasks", tasks.Create)
-	mux.HandleFunc("PATCH /api/tasks/{id}", tasks.Toggle)
-
-	mux.HandleFunc("GET /api/projects", projects.List)
-	mux.HandleFunc("POST /api/projects", projects.Create)
-	mux.HandleFunc("GET /api/projects/{id}", projects.Get)
-	mux.HandleFunc("PUT /api/projects/{id}", projects.Update)
-	mux.HandleFunc("DELETE /api/projects/{id}", projects.Delete)
+	// E-commerce: catálogo
+	mux.HandleFunc("GET /api/categories", products.Categories)
 	mux.HandleFunc("GET /api/products", products.List)
 	mux.HandleFunc("POST /api/products", products.Create)
 	mux.HandleFunc("GET /api/products/{id}", products.Get)
 	mux.HandleFunc("PUT /api/products/{id}", products.Update)
 	mux.HandleFunc("DELETE /api/products/{id}", products.Delete)
+
+	// E-commerce: pedidos (checkout)
+	mux.HandleFunc("GET /api/orders", orders.List)
+	mux.HandleFunc("POST /api/orders", orders.Create)
+	mux.HandleFunc("GET /api/orders/{id}", orders.Get)
 
 	dist, err := fs.Sub(frontendFiles, "frontend/dist")
 	if err != nil {
@@ -40,6 +38,10 @@ func main() {
 	static := http.FileServer(http.FS(dist))
 	mux.Handle("/", static)
 
-	log.Println("Servidor rodando em http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	port := os.Getenv("PORT") // ex.: PORT=8081 go run .
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Servidor rodando em http://localhost:%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

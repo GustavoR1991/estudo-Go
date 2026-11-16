@@ -31,286 +31,82 @@ go test ./...
 go vet ./...
 ```
 
-### API de produtos
+Porta diferente (se a 8080 estiver ocupada): `$env:PORT="8081"; go run .`
 
-A loja usa os endpoints abaixo (os dados ficam em memória durante a execução):
+### API do e-commerce
+
+Dados ficam em memória durante a execução. Erros sempre vêm como `{"error": "mensagem"}`.
 
 ```text
-GET    /api/products?q=fone&category=Áudio
+GET    /api/categories                        lista de categorias
+GET    /api/products?q=fone&category=Áudio&featured=true
 POST   /api/products
 GET    /api/products/{id}
 PUT    /api/products/{id}
 DELETE /api/products/{id}
+
+POST   /api/orders                            checkout (cria pedido e baixa estoque)
+GET    /api/orders?email=ana@email.com
+GET    /api/orders/{id}
 ```
 
 Um produto precisa de `name`, `category`, `price` maior que zero e `stock` maior
-ou igual a zero. O front-end em desenvolvimento (`npm run dev`) encaminha
-automaticamente `/api` para o Go em `http://localhost:8080`.
+ou igual a zero.
 
----
-
-## Desafio 1 — CRUD de projetos
-
-Implemente completamente estas rotas:
-
-```text
-GET    /api/projects
-POST   /api/projects
-GET    /api/projects/{id}
-PUT    /api/projects/{id}
-DELETE /api/projects/{id}
-```
-
-O projeto deve possuir:
+Exemplo de checkout — o front manda só `productId` e `quantity`; preço, nome e
+frete são calculados no servidor (frete R$ 19,90, grátis a partir de R$ 199):
 
 ```json
+POST /api/orders
 {
-  "id": 1,
-  "name": "Projeto Go",
-  "description": "Estudo de API",
-  "status": "active"
+  "customer": { "name": "Ana", "email": "ana@email.com", "address": "Rua A, 10" },
+  "items": [{ "productId": 1, "quantity": 2 }]
 }
 ```
 
-Regras:
+Respostas: `201` pedido criado · `400` dados inválidos · `404` produto não existe ·
+`409` estoque insuficiente (nenhum estoque é alterado).
 
-- `name` é obrigatório;
-- `status` aceita somente `active`, `paused` ou `completed`;
-- IDs devem ser únicos;
-- projeto inexistente deve retornar `404`;
-- JSON inválido deve retornar `400`;
-- criação deve retornar `201`;
-- atualização deve retornar `200`;
-- exclusão deve retornar `200` ou `204`.
-
-Teste todas as rotas no Postman.
-
----
-
-## Desafio 2 — Criar projeto pelo Postman
-
-Faça:
+### Organização do código
 
 ```text
-POST http://localhost:8080/api/projects
+main.go                         rotas + serve o front compilado (frontend/dist)
+internal/httpx/                 helpers JSON / erro / leitura de {id}
+internal/products/              catálogo (handler.go = HTTP, store.go = dados + estoque)
+internal/orders/                checkout e pedidos (+ handler_test.go)
+
+frontend/src/
+  services/api.js               ÚNICO lugar que chama fetch("/api/...")
+  composables/useCart.js        estado do carrinho (salvo no localStorage)
+  components/ProductCard.vue    card de produto
+  components/CartDrawer.vue     sacola → formulário → pedido confirmado
+  App.vue                       página: busca, filtros, grid
+  style.css                     estilos globais
 ```
 
-Header:
+### Sua tarefa: integrar a API no front
 
-```text
-Content-Type: application/json
-```
+O código já está escrito **comentado**, com explicação em cada passo. Você
+reescreve à mão embaixo do comentário e apaga a linha marcada com `⛔ APAGUE`.
+Siga a ordem:
 
-Body:
+| Passo | Arquivo → função | O que faz |
+|---|---|---|
+| 1 | `services/api.js` → `request()` | função base do `fetch` + tratamento de erro |
+| 2 | `services/api.js` → `listCategories()` | `GET /api/categories` |
+| 3 | `services/api.js` → `listProducts()` | `GET /api/products?q=&category=` |
+| 4 | `App.vue` → `loadProducts()` | mostra os produtos na tela |
+| 5 | `App.vue` → `loadCategories()` | mostra os filtros |
+| 6 | `services/api.js` → `createOrder()` | `POST /api/orders` |
+| 7 | `components/CartDrawer.vue` → `submitOrder()` | finaliza o pedido |
+| extra | `services/api.js` → `getOrder()` | sem resposta pronta, tente sozinho |
 
-```json
-{
-  "name": "Projeto de compras",
-  "description": "Conferência de pedidos",
-  "status": "active"
-}
-```
+Teste cada rota primeiro no navegador/Postman (ex.: `http://localhost:8080/api/products`)
+para ver o JSON antes de escrever o `fetch`.
 
-Teste também:
-
-```json
-{}
-```
-
-```json
-{
-  "name": ""
-}
-```
-
-```json
-{
-  "name": "Projeto",
-  "status": "invalido"
-}
-```
-
-```json
-{
-  "name": "Projeto"
-```
-
-Para cada caso, confirme o status HTTP e o corpo da resposta.
-
----
-
-## Desafio 3 — Buscar projeto
-
-Teste:
-
-```text
-GET http://localhost:8080/api/projects/1
-```
-
-Depois teste:
-
-```text
-GET http://localhost:8080/api/projects/999
-GET http://localhost:8080/api/projects/abc
-```
-
-Defina respostas diferentes para:
-
-- ID existente;
-- ID inexistente;
-- ID inválido.
-
----
-
-## Desafio 4 — Atualizar projeto
-
-Faça:
-
-```text
-PUT http://localhost:8080/api/projects/1
-```
-
-Body:
-
-```json
-{
-  "name": "Projeto atualizado",
-  "description": "Descrição nova",
-  "status": "completed"
-}
-```
-
-Depois confirme com:
-
-```text
-GET http://localhost:8080/api/projects/1
-```
-
-Teste atualização de:
-
-- projeto inexistente;
-- ID inválido;
-- JSON inválido;
-- nome vazio;
-- status inválido.
-
----
-
-## Desafio 5 — Excluir projeto
-
-Faça:
-
-```text
-DELETE http://localhost:8080/api/projects/1
-```
-
-Depois confirme que o projeto não existe mais:
-
-```text
-GET http://localhost:8080/api/projects/1
-```
-
-Teste também:
-
-```text
-DELETE http://localhost:8080/api/projects/999
-DELETE http://localhost:8080/api/projects/abc
-```
-
----
-
-## Desafio 6 — IDs e memória
-
-Investigue e corrija:
-
-- IDs repetidos;
-- `nextID` iniciado com valor incorreto;
-- comportamento após excluir um projeto;
-- comportamento após reiniciar o servidor;
-- criação simultânea de projetos.
-
-Execute:
-
-```powershell
-go test -race ./...
-```
-
----
-
-## Desafio 7 — Testes automatizados em Go
-
-Crie testes para:
-
-- listar projetos;
-- criar projeto válido;
-- rejeitar JSON inválido;
-- rejeitar nome vazio;
-- rejeitar status inválido;
-- buscar projeto existente;
-- retornar `404` para projeto inexistente;
-- atualizar projeto;
-- excluir projeto;
-- tentar excluir projeto inexistente.
-
-Use:
-
-```go
-net/http/httptest
-```
-
-Execute:
-
-```powershell
-go test ./... -v
-```
-
----
-
-## Desafio 8 — Frontend de projetos
-
-Crie uma tela Vue para projetos com:
-
-- listagem;
-- formulário de criação;
-- edição;
-- exclusão;
-- filtro por status;
-- estado de carregamento;
-- estado vazio;
-- mensagem de erro;
-- confirmação antes de excluir.
-
-Use as APIs:
-
-```text
-GET    /api/projects
-POST   /api/projects
-PUT    /api/projects/{id}
-DELETE /api/projects/{id}
-```
-
----
-
-## Desafio 9 — Bugs no frontend
-
-Crie e depois corrija estes problemas:
-
-- lista não atualiza após criar;
-- botão permite dois submits;
-- erro da API não aparece;
-- filtro mostra dados errados;
-- exclusão remove o item visual errado;
-- loading não termina quando ocorre erro;
-- frontend usa `title` e API usa `name`;
-- frontend usa `completed` e API usa `done`.
-
-Para cada bug:
-
-1. reproduza;
-2. descreva o sintoma;
-3. encontre a causa;
-4. corrija;
-5. teste novamente.
+O front-end em desenvolvimento (`npm run dev`) encaminha automaticamente `/api`
+para o Go em `http://localhost:8080` (ver `frontend/vite.config.js`). Depois de
+mexer no front, rode `npm run build` para o `go run .` servir a versão nova.
 
 ---
 
@@ -355,7 +151,7 @@ Regras:
 Adicione paginação em:
 
 ```text
-GET /api/projects?page=1&limit=10
+GET /api/products?page=1&limit=10
 ```
 
 Resposta esperada:
@@ -384,11 +180,12 @@ Teste:
 Adicione:
 
 ```text
-GET /api/projects?status=active
-GET /api/projects?search=go
+GET /api/products?minPrice=100&maxPrice=400
+GET /api/products?inStock=true
 ```
 
-Faça a busca funcionar sem diferenciar letras maiúsculas e minúsculas.
+Os filtros devem funcionar junto com `q` e `category`, que já existem. Responda `400`
+se `minPrice` ou `maxPrice` não forem números.
 
 ---
 

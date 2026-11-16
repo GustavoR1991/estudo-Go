@@ -1,6 +1,16 @@
 package products
 
-import "sync"
+import (
+	"errors"
+	"fmt"
+	"sync"
+)
+
+// ErrNotFound e ErrNoStock são devolvidos por DecreaseStock.
+var (
+	ErrNotFound = errors.New("produto não encontrado")
+	ErrNoStock  = errors.New("estoque insuficiente")
+)
 
 type Product struct {
 	ID          int      `json:"id"`
@@ -68,6 +78,39 @@ func UpdateByID(id int, product Product) (Product, bool) {
 		}
 	}
 	return Product{}, false
+}
+
+// DecreaseStock baixa o estoque de vários produtos de uma vez (id -> quantidade).
+// É "tudo ou nada": se um item falhar, nenhum estoque é alterado.
+// Devolve os produtos como estavam no momento da compra (para pegar nome e preço).
+func DecreaseStock(quantities map[int]int) (map[int]Product, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	found := make(map[int]int, len(quantities)) // id -> índice no slice
+	for id, quantity := range quantities {
+		index := -1
+		for i := range products {
+			if products[i].ID == id {
+				index = i
+				break
+			}
+		}
+		if index == -1 {
+			return nil, fmt.Errorf("%w: id %d", ErrNotFound, id)
+		}
+		if products[index].Stock < quantity {
+			return nil, fmt.Errorf("%w: %s (disponível: %d)", ErrNoStock, products[index].Name, products[index].Stock)
+		}
+		found[id] = index
+	}
+
+	result := make(map[int]Product, len(quantities))
+	for id, index := range found {
+		result[id] = products[index]
+		products[index].Stock -= quantities[id]
+	}
+	return result, nil
 }
 
 func DeleteByID(id int) bool {
