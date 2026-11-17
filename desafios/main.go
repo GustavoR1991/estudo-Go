@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 
-	twosum "desafios/01_two_sum"
+	parenteses "desafios/02_parenteses_validos"
 )
 
 func main() {
-	fmt.Println(twosum.TwoSum([]int{2, 7, 11, 15}, 9))
+	// fmt.Println(twosum.TwoSum([]int{2, 7, 11, 15}, 9))
+	fmt.Println(parenteses.EhValido("()[]{}")) // true
+	fmt.Println(parenteses.EhValido("([)]"))
 }
